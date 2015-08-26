@@ -3,9 +3,11 @@ package se.erikmidander.pulsatingviewtest;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -23,7 +25,7 @@ public class PulsatingView extends SurfaceView implements SurfaceHolder.Callback
 
     private AnimationThread thread;
 
-    private Paint paint;
+    private Paint circlePaint;
     private Point center;
 
     private long lastFrameTime;
@@ -47,6 +49,10 @@ public class PulsatingView extends SurfaceView implements SurfaceHolder.Callback
 
         setupDrawing();
 
+        if (!isInEditMode()) {
+            setZOrderOnTop(true);
+        }
+        getHolder().setFormat(PixelFormat.TRANSLUCENT);
         getHolder().addCallback(this);
     }
 
@@ -62,9 +68,8 @@ public class PulsatingView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void setupDrawing() {
-        paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(0xffffffff);
-        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
+        circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        circlePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
 
         circles = new ArrayList<Float>();
         for (int i = 0; i < NUMBER_OF_CIRCLES; i++) {
@@ -74,7 +79,12 @@ public class PulsatingView extends SurfaceView implements SurfaceHolder.Callback
 
     protected void draw(Canvas canvas, long timeDelta) {
 
-        canvas.drawARGB(255, 0, 0, 255);
+        // Clear background
+        Paint paint = new Paint();
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+        Rect rect = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
+        canvas.drawRect(rect, paint);
+
         float progress = 1.0f / ANIMATION_TIME_IN_SECONDS * timeDelta / 1000.0f;
         float sizeDelta = endSize - startSize;
         int start = firstCircleIndex;
@@ -83,8 +93,9 @@ public class PulsatingView extends SurfaceView implements SurfaceHolder.Callback
             int index = i % NUMBER_OF_CIRCLES;
             float circle = circles.get(index);
             if (circle > 0.0f) {
-                paint.setARGB((int) (255.0f * (1.0f - 1.0f * circle)), 255, 255, 255);
-                canvas.drawCircle(center.x, center.y, startSize + sizeDelta * circle, paint);
+                int alpha = (int) (255.0f * (1.0f - 1.0f * circle));
+                circlePaint.setARGB(alpha, 255, 255, 255);
+                canvas.drawCircle(center.x, center.y, startSize + sizeDelta * circle, circlePaint);
             }
             circle += progress;
             if (circle > 1.0) {
